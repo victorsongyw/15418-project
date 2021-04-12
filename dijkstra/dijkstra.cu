@@ -20,8 +20,7 @@ void saxpy_kernel(int N, float alpha, float* x, float* y, float* result) {
        result[index] = alpha * x[index] + y[index];
 }
 
-void
-saxpyCuda(int N, float alpha, float* xarray, float* yarray, float* resultarray) {
+void saxpyCuda(int N, float alpha, float* xarray, float* yarray, float* resultarray) {
 
     int totalBytes = sizeof(float) * 3 * N;
 
