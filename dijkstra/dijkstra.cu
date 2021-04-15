@@ -14,7 +14,7 @@ int* device_nodes, device_edges, device_weights, device_dists;
 
 __global__ 
 void baseline_Dijkstra_kernel() {
-    // TODO
+    
 }
 
 void baseline_Dijkstra() {
