@@ -1,4 +1,6 @@
+#include <stdlib.h>
 #include <stdio.h>
+#include <limits.h>
 
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -6,60 +8,127 @@
 
 #include "CycleTimer.h"
 
-extern float toBW(int bytes, float sec);
-extern int N, M;
-extern int *nodes, edges, weights, dists;
+#define DIST_OFFSET 32
+// #define DIST_MASK 0xFFFFFFFF00000000
+#define NODE_MASK 0xFFFFFFFF
 
-int* device_nodes, device_edges, device_weights, device_dists;
+extern float toBW(int bytes, float sec);
+extern uint N, M;
+extern uint *nodes, *edges, *weights, *dists;
+
+#define DEBUG
+#ifdef DEBUG
+#define cudaCheckError(ans) cudaAssert((ans), __FILE__, __LINE__);
+inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+    if (code != cudaSuccess)
+    {
+        fprintf(stderr, "CUDA Error: %s at %s:%d\n",
+        cudaGetErrorString(code), file, line);
+        if (abort) exit(code);
+    }
+}
+#else
+#define cudaCheckError(ans) ans
+#endif
+
 
 __global__ 
-void baseline_Dijkstra_kernel() {
-    
+void baseline_Dijkstra_find_next_node(uint *nodes, uint *edges, uint *weights, uint *dists,
+                              bool *finalized, unsigned long long int *min_dist_and_node) {
+    uint v = blockIdx.x * blockDim.x + threadIdx.x;
+    if (finalized[v]) return;
+    unsigned long long int dist_and_node = ((unsigned long long int)dists[v] << DIST_OFFSET) || v;
+    atomicMin(min_dist_and_node, dist_and_node);
 }
 
+__global__ 
+void baseline_Dijkstra_update_dists(uint *nodes, uint *edges, uint *weights, uint *dists,
+                              bool *finalized, unsigned long long int *min_dist_and_node) {
+    uint u = blockIdx.x * blockDim.x + threadIdx.x;
+    uint node = *min_dist_and_node & NODE_MASK;
+    if (u != node) return;
+    
+    printf("%d\n", u);
+    finalized[u] = true;
+    
+    for (uint i = nodes[u]; i < nodes[u+1]; i++) {
+        uint v = edges[i];
+        if (!finalized[v] && dists[u] + weights[v] < dists[v]) {
+            dists[v] = dists[u] + weights[v];
+        }
+    }
+}
+
+
 void baseline_Dijkstra() {
+    uint *device_nodes, *device_edges, *device_weights, *device_dists;
+    bool *finalized;
+    bool *device_finalized;
+    unsigned long long int min_dist_and_node, *device_min_dist_and_node; // upper 32 bytes represent dist, lower 32 bytes represent node
 
-    int totalBytes = sizeof(int) * (N + M) * 2;
+    // TODO: how do we compute number of blocks and threads per block
+    const int threadsPerBlock = 512;
+    const int blocks = (N + threadsPerBlock - 1) / threadsPerBlock;
 
-    // TODO: compute number of blocks and threads per block
-    // const int threadsPerBlock = 512;
-    // const int blocks = (N + threadsPerBlock - 1) / threadsPerBlock;
+    cudaCheckError(cudaMalloc(&device_nodes, (N+1) * sizeof(uint)));
+    cudaCheckError(cudaMalloc(&device_edges, M * sizeof(uint)));
+    cudaCheckError(cudaMalloc(&device_weights, M * sizeof(uint)));
+    cudaCheckError(cudaMalloc(&device_dists, N * sizeof(uint)));
+    cudaCheckError(cudaMalloc(&device_finalized, N * sizeof(bool)));
+    cudaCheckError(cudaMalloc(&device_min_dist_and_node, sizeof(unsigned long long int)));
 
-    cudaMalloc(&device_nodes, (N+1) * sizeof(int));
-    cudaMalloc(&device_edges, M * sizeof(int));
-    cudaMalloc(&device_weights, M * sizeof(int));
-    cudaMalloc(&device_dists, N * sizeof(int));
+    finalized = new bool[N];
+    for (uint i = 0; i < N; i++) {
+        finalized[i] = false;
+    }
 
     // start timing after allocation of device memory
     double startTime = CycleTimer::currentSeconds();
 
-    cudaMemcpy(device_nodes, nodes, (N+1) * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(device_edges, edges, M * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(device_weights, weights, M * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(device_dists, dists, N * sizeof(int), cudaMemcpyHostToDevice);
+    cudaCheckError(cudaMemcpy(device_nodes, nodes, (N+1) * sizeof(uint), cudaMemcpyHostToDevice));
+    cudaCheckError(cudaMemcpy(device_edges, edges, M * sizeof(uint), cudaMemcpyHostToDevice));
+    cudaCheckError(cudaMemcpy(device_weights, weights, M * sizeof(uint), cudaMemcpyHostToDevice));
+    cudaCheckError(cudaMemcpy(device_dists, dists, N * sizeof(uint), cudaMemcpyHostToDevice));
+    cudaCheckError(cudaMemcpy(device_finalized, finalized, N * sizeof(bool), cudaMemcpyHostToDevice));
+
+    cudaError_t errCode = cudaPeekAtLastError();
+    if (errCode != cudaSuccess) {
+        fprintf(stderr, "WARNING: A CUDA error occured before launching: code=%d, %s\n", errCode, cudaGetErrorString(errCode));
+    }
 
     // run kernel
     double kernelStartTime = CycleTimer::currentSeconds();
 
-    for (round = 0; round < N; round++) {
-        baseline_Dijkstra_kernel<<<blocks, threadsPerBlock>>>(round);
-        cudaDeviceSynchronize();
+    for (uint i = 0; i < N-1; i++) {
+        min_dist_and_node = ULLONG_MAX;
+        cudaCheckError(cudaMemcpy(device_min_dist_and_node, &min_dist_and_node, sizeof(unsigned long long int), cudaMemcpyHostToDevice));
+        baseline_Dijkstra_find_next_node<<<blocks, threadsPerBlock>>>(device_nodes, device_edges, device_weights, device_dists, device_finalized, device_min_dist_and_node);
+        cudaCheckError ( cudaDeviceSynchronize() );
+        baseline_Dijkstra_update_dists<<<blocks, threadsPerBlock>>>(device_nodes, device_edges, device_weights, device_dists, device_finalized, device_min_dist_and_node);
+        cudaCheckError ( cudaDeviceSynchronize() );
     }
 
     double kernelEndTime = CycleTimer::currentSeconds();
 
-    cudaMemcpy(dists, device_dists, N * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(dists, device_dists, N * sizeof(uint), cudaMemcpyDeviceToHost);
+    
+    printf("dists:\n");
+    for (int i = 0; i < N; i++) {
+        printf("%d: %d\n", i, dists[i]);
+    }
 
     // end timing after result has been copied back into host memory
     double endTime = CycleTimer::currentSeconds();
 
-    cudaError_t errCode = cudaPeekAtLastError();
+    errCode = cudaPeekAtLastError();
     if (errCode != cudaSuccess) {
-        fprintf(stderr, "WARNING: A CUDA error occured: code=%d, %s\n", errCode, cudaGetErrorString(errCode));
+        fprintf(stderr, "WARNING: A CUDA error occured after launching: code=%d, %s\n", errCode, cudaGetErrorString(errCode));
     }
 
     double overallDuration = endTime - startTime;
     double kernelDuration = kernelEndTime - kernelStartTime;
+    int totalBytes = sizeof(uint) * (N + M) * 2; // TODO: UPDATE LATER
     printf("Overall: %.3f ms\t\t[%.3f GB/s]\n", 1000.f * overallDuration, toBW(totalBytes, overallDuration));
     printf("Kernel: %.3f ms\t\t[%.3f GB/s]\n", 1000.f * kernelDuration, toBW(totalBytes, kernelDuration));
 
@@ -67,4 +136,6 @@ void baseline_Dijkstra() {
     cudaFree(device_edges);
     cudaFree(device_weights);
     cudaFree(device_dists);
+    cudaFree(device_finalized);
+    delete[] finalized;
 }

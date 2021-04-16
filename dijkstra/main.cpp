@@ -8,15 +8,15 @@
 #include <sstream>
 using namespace std;
 
-int N = -1; // number of nodes in the graph
-int M = -1; // number of directed edges in the graph
-int *nodes; // start index of edges from nth node
-int *edges; // destination node of edges
-int *weights; // weight of the edge in the corresponding index of edges
-int *dists; // distances from the source node
+uint N = -1; // number of nodes in the graph
+uint M = -1; // number of directed edges in the graph
+uint *nodes; // start index of edges from nth node
+uint *edges; // destination node of edges
+uint *weights; // weight of the edge in the corresponding index of edges
+uint *dists; // distances from the source node
 
-void baseline_Dijkstra(int* nodes, int *edges, int *dists);
-void warp_Dijkstra(int* nodes, int *edges, int *dists);
+void baseline_Dijkstra();
+void warp_Dijkstra();
 
 // return GB/s
 float toBW(int bytes, float sec) {
@@ -44,20 +44,21 @@ float toBW(int bytes, float sec) {
 // }
 
 // Adopted from https://www.geeksforgeeks.org/dijkstras-shortest-path-algorithm-greedy-algo-7/
-void dijkstra_ref(int *ref_dists) {
+void dijkstra_ref(uint *ref_dists) {
     bool finalized[N]; // finalized[i] will be true if node i is finalized
-    for (int i = 0; i < N; i++) {
+    for (uint i = 0; i < N; i++) {
         ref_dists[i] = INT_MAX;
         finalized[i] = false;
     }
     ref_dists[0] = 0;
 
     // Find shortest path for all vertices
-    for (int count = 0; count < N-1; count++) {
+    for (uint count = 0; count < N-1; count++) {
         // Find the minimum distance node from the set of unfinalized nodes.
         // u is 0 in the first iteration.
-        int min_dist = INT_MAX, u;
-        for (int v = 0; v < N; v++) {
+        uint min_dist = INT_MAX;
+        uint u = 0;
+        for (uint v = 0; v < N; v++) {
             if (!finalized[v] && ref_dists[v] <= min_dist) {
                 min_dist = ref_dists[v];
                 u = v;
@@ -67,8 +68,8 @@ void dijkstra_ref(int *ref_dists) {
         finalized[u] = true;
 
         // Update dist value of neighbors of the picked node
-        for (int i = nodes[u]; i < nodes[u+1]; i++) {
-            int v = edges[i];
+        for (uint i = nodes[u]; i < nodes[u+1]; i++) {
+            uint v = edges[i];
             if (!finalized[v] && ref_dists[u] + weights[v] < ref_dists[v]) {
                 ref_dists[v] = ref_dists[u] + weights[v];
             }
@@ -83,16 +84,16 @@ void dijkstra_ref(int *ref_dists) {
 
 
 void verifyCorrectness() {
-    int *ref_dists = new int[N];
+    uint *ref_dists = new uint[N];
     dijkstra_ref(ref_dists);
-    // for (int i = 0; i < N; i++) {
-    //     if (dists[i] != ref_dists[i]) {
-    //         printf("Solution incorrect!\n");
-    //         delete[] ref_dists;
-    //         return;
-    //     }
-    // }
-    // print("Solution correct!")
+    for (uint i = 0; i < N; i++) {
+        if (dists[i] != ref_dists[i]) {
+            printf("Solution incorrect!\n");
+            delete[] ref_dists;
+            return;
+        }
+    }
+    printf("Solution correct!\n");
     delete[] ref_dists;
 }
 
@@ -103,7 +104,7 @@ void usage(const char* progname) {
     printf("first line: N, M\n");
     printf("second line: start index of edges from nth node (N+1 numbers)\n");
     printf("third line: destination node of edges (M numbers)\n");
-    printf("fourth line: weights of edges (M numbers)");
+    printf("fourth line: weights of edges (M numbers)\n");
     printf("Nodes should range from 0 to N-1 and the source node is node 0\n");
     printf("Edge weights should be non-negative and should not overflow\n");
     printf("Program Options:\n");
@@ -137,7 +138,6 @@ int main(int argc, char** argv)
     // end parsing of commandline options //////////////////////////////////////
 
     // read and parse input file ////////////////////////////////////////////
-    printf("start\n");
     if (optind + 1 > argc) {
         fprintf(stderr, "Error: missing input file name\n");
         usage(argv[0]);
@@ -149,34 +149,32 @@ int main(int argc, char** argv)
         usage(argv[0]);
         return 1;
     }
-    printf("opened file\n");
 
     int lineNum = 0;
     bool success = true;
     string line;
     while (getline(inputFile, line)) {
-        printf("reading line %d\n", lineNum);
         lineNum++;
         istringstream iss(line);
         if (lineNum == 1) {
             iss >> N >> M;
-            if (N <= 0 || M < 0) {
+            if (N <= 0 || M <= 0) {
                 success = false;
                 goto readDone;
             }
-            nodes = new int[N+1]; 
-            edges = new int[M]; 
-            weights = new int[M];
-            for (int i = 0; i < N+1; i++) {
+            nodes = new uint[N+1]; 
+            edges = new uint[M]; 
+            weights = new uint[M];
+            for (uint i = 0; i < N+1; i++) {
                 nodes[i] = -1;
             }
-            for (int i = 0; i < M; i++) {
+            for (uint i = 0; i < M; i++) {
                 edges[i] = -1;
                 weights[i] = -1;
             }
         }
         else if (lineNum == 2) {
-            for (int i = 0; i < N+1; i++) {
+            for (uint i = 0; i < N+1; i++) {
                 iss >> nodes[i];
                 if ((i == 0 && nodes[0] != 0) ||
                     (i == N && nodes[N] != M) ||
@@ -188,7 +186,7 @@ int main(int argc, char** argv)
             }
         }
         else if (lineNum == 3) {
-            for (int i = 0; i < M; i++) {
+            for (uint i = 0; i < M; i++) {
                 iss >> edges[i];
                 if (edges[i] < 0 || edges[i] >= N) {
                     success = false;
@@ -197,7 +195,7 @@ int main(int argc, char** argv)
             }
         }
         else if (lineNum == 4) {
-            for (int i = 0; i < M; i++) {
+            for (uint i = 0; i < M; i++) {
                 iss >> weights[i];
                 if (weights[i] < 0) {
                     success = false;
@@ -233,15 +231,16 @@ int main(int argc, char** argv)
     // }
     // printf("\n");
     
-    // dists = new int[N]; // will contain distances from the start node
-    // for (int i = 0; i < N; i++) {
-    //     dists[i] = INT_MAX;
-    // }
+    dists = new uint[N]; // will contain distances from the start node
+    for (uint i = 0; i < N; i++) {
+        dists[i] = INT_MAX;
+    }
+    dists[0] = 0;
 
     printf("init done\n");
 
     // printCudaInfo();
-    // baseline_Dijkstra();
+    baseline_Dijkstra();
 
     if (true)
         verifyCorrectness();
