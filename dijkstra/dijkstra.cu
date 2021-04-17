@@ -38,7 +38,7 @@ void baseline_Dijkstra_find_next_node(uint *nodes, uint *edges, uint *weights, u
                               bool *finalized, unsigned long long int *min_dist_and_node) {
     uint v = blockIdx.x * blockDim.x + threadIdx.x;
     if (finalized[v]) return;
-    unsigned long long int dist_and_node = ((unsigned long long int)dists[v] << DIST_OFFSET) || v;
+    unsigned long long int dist_and_node = ((unsigned long long int)dists[v] << DIST_OFFSET) | (unsigned long long int)v;
     atomicMin(min_dist_and_node, dist_and_node); // dist is the upper bits, so we overwrite only if we have a smaller dist
 }
 

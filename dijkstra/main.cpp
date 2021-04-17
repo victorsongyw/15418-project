@@ -8,8 +8,10 @@
 #include <sstream>
 using namespace std;
 
-uint N = -1; // number of nodes in the graph
-uint M = -1; // number of directed edges in the graph
+#include "input_graph.h"
+
+uint N = NUM_NODES; // number of nodes in the graph
+uint M = NUM_EDGES; // number of directed edges in the graph
 uint *nodes; // start index of edges from nth node
 uint *edges; // destination node of edges
 uint *weights; // weight of the edge in the corresponding index of edges
@@ -70,16 +72,16 @@ void dijkstra_ref(uint *ref_dists) {
         // Update dist value of neighbors of the picked node
         for (uint i = nodes[u]; i < nodes[u+1]; i++) {
             uint v = edges[i];
-            if (!finalized[v] && ref_dists[u] + weights[v] < ref_dists[v]) {
-                ref_dists[v] = ref_dists[u] + weights[v];
+            if (!finalized[v] && ref_dists[u] + weights[i] < ref_dists[v]) {
+                ref_dists[v] = ref_dists[u] + weights[i];
             }
         }
     }
 
-    // printf("ref_dists:\n");
-    // for (int i = 0; i < N; i++) {
-    //     printf("%d: %d\n", i, ref_dists[i]);
-    // }
+    printf("ref_dists:\n");
+    for (uint i = 0; i < N; i++) {
+        printf("%d: %d\n", i, ref_dists[i]);
+    }
 }
 
 
@@ -99,12 +101,7 @@ void verifyCorrectness() {
 
 
 void usage(const char* progname) {
-    printf("Usage: %s [options] filename\n", progname);
-    printf("Valid files contain:\n");
-    printf("first line: N, M\n");
-    printf("second line: start index of edges from nth node (N+1 numbers)\n");
-    printf("third line: destination node of edges (M numbers)\n");
-    printf("fourth line: weights of edges (M numbers)\n");
+    printf("Usage: %s [options]\n", progname);
     printf("Nodes should range from 0 to N-1 and the source node is node 0\n");
     printf("Edge weights should be non-negative and should not overflow\n");
     printf("Program Options:\n");
@@ -126,9 +123,9 @@ int main(int argc, char** argv)
 
     while ((opt = getopt_long(argc, argv, "?ca:", long_options, NULL)) != EOF) {
         switch (opt) {
-        case 'n':
-            N = atoi(optarg);
-            break;
+        // case 'n':
+        //     N = atoi(optarg);
+        //     break;
         case '?':
         default:
             usage(argv[0]);
@@ -137,84 +134,9 @@ int main(int argc, char** argv)
     }
     // end parsing of commandline options //////////////////////////////////////
 
-    // read and parse input file ////////////////////////////////////////////
-    if (optind + 1 > argc) {
-        fprintf(stderr, "Error: missing input file name\n");
-        usage(argv[0]);
-        return 1;
-    }
-    ifstream inputFile(argv[optind]);
-    if (!inputFile) {
-        fprintf(stderr, "Error: failed to open input file %s\n", argv[optind]);
-        usage(argv[0]);
-        return 1;
-    }
-
-    int lineNum = 0;
-    bool success = true;
-    string line;
-    while (getline(inputFile, line)) {
-        lineNum++;
-        istringstream iss(line);
-        if (lineNum == 1) {
-            iss >> N >> M;
-            if (N <= 0 || M <= 0) {
-                success = false;
-                goto readDone;
-            }
-            nodes = new uint[N+1]; 
-            edges = new uint[M]; 
-            weights = new uint[M];
-            for (uint i = 0; i < N+1; i++) {
-                nodes[i] = -1;
-            }
-            for (uint i = 0; i < M; i++) {
-                edges[i] = -1;
-                weights[i] = -1;
-            }
-        }
-        else if (lineNum == 2) {
-            for (uint i = 0; i < N+1; i++) {
-                iss >> nodes[i];
-                if ((i == 0 && nodes[0] != 0) ||
-                    (i == N && nodes[N] != M) ||
-                    (i > 0 && nodes[i] <= nodes[i-1]))
-                {
-                    success = false;
-                    goto readDone;
-                }
-            }
-        }
-        else if (lineNum == 3) {
-            for (uint i = 0; i < M; i++) {
-                iss >> edges[i];
-                if (edges[i] < 0 || edges[i] >= N) {
-                    success = false;
-                    goto readDone;
-                }
-            }
-        }
-        else if (lineNum == 4) {
-            for (uint i = 0; i < M; i++) {
-                iss >> weights[i];
-                if (weights[i] < 0) {
-                    success = false;
-                    goto readDone;
-                }
-            }
-        }
-    }
-    readDone:
-    inputFile.close();
-    if (!success || lineNum != 4) {
-        delete[] nodes;
-        delete[] edges;
-        delete[] weights;
-        fprintf(stderr, "Error: illegal input file content\n");
-        usage(argv[0]);
-        return 1;
-    }
-    // end reading and parsing input file ////////////////////////////////////////////
+    nodes = NODES;
+    edges = EDGES;
+    weights = WEIGHTS;
 
     // printf("N=%d, M=%d\n", N, M);
     // printf("nodes:   ");
@@ -245,13 +167,7 @@ int main(int argc, char** argv)
     if (true)
         verifyCorrectness();
 
-    delete[] nodes;
-    delete[] edges;
-    delete[] weights;
     delete[] dists;
 
     return 0;
 }
-
-
-
