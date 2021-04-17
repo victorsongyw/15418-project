@@ -77,11 +77,6 @@ void dijkstra_ref(uint *ref_dists) {
             }
         }
     }
-
-    printf("ref_dists:\n");
-    for (uint i = 0; i < N; i++) {
-        printf("%d: %d\n", i, ref_dists[i]);
-    }
 }
 
 
@@ -91,6 +86,11 @@ void verifyCorrectness() {
     for (uint i = 0; i < N; i++) {
         if (dists[i] != ref_dists[i]) {
             printf("Solution incorrect!\n");
+            printf("ref_dists:\n");
+            for (uint j = 0; j < N; j++)
+            {
+                printf("%d: %d\n", j, ref_dists[j]);
+            }
             delete[] ref_dists;
             return;
         }

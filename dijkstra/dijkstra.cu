@@ -35,8 +35,9 @@ inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=
 
 __global__ 
 void baseline_Dijkstra_find_next_node(uint *nodes, uint *edges, uint *weights, uint *dists,
-                              bool *finalized, unsigned long long int *min_dist_and_node) {
+                              bool *finalized, unsigned long long int *min_dist_and_node, int num_nodes) {
     uint v = blockIdx.x * blockDim.x + threadIdx.x;
+    if (v >= num_nodes) return;
     if (finalized[v]) return;
     unsigned long long int dist_and_node = ((unsigned long long int)dists[v] << DIST_OFFSET) | (unsigned long long int)v;
     atomicMin(min_dist_and_node, dist_and_node); // dist is the upper bits, so we overwrite only if we have a smaller dist
@@ -44,18 +45,19 @@ void baseline_Dijkstra_find_next_node(uint *nodes, uint *edges, uint *weights, u
 
 __global__ 
 void baseline_Dijkstra_update_dists(uint *nodes, uint *edges, uint *weights, uint *dists,
-                              bool *finalized, unsigned long long int *min_dist_and_node) {
+                              bool *finalized, unsigned long long int *min_dist_and_node, int num_nodes) {
     uint u = blockIdx.x * blockDim.x + threadIdx.x;
+    if (u >= num_nodes) return;
     uint node = *min_dist_and_node & NODE_MASK;
     if (u != node) return;
     
-    printf("%d\n", u);
+    // printf("%d\n", u);
     finalized[u] = true;
     
     for (uint i = nodes[u]; i < nodes[u+1]; i++) {
         uint v = edges[i];
-        if (!finalized[v] && dists[u] + weights[v] < dists[v]) {
-            dists[v] = dists[u] + weights[v];
+        if (!finalized[v] && dists[u] + weights[i] < dists[v]) {
+            dists[v] = dists[u] + weights[i];
         }
     }
 }
@@ -103,9 +105,9 @@ void baseline_Dijkstra() {
     for (uint i = 0; i < N-1; i++) {
         min_dist_and_node = ULLONG_MAX;
         cudaCheckError(cudaMemcpy(device_min_dist_and_node, &min_dist_and_node, sizeof(unsigned long long int), cudaMemcpyHostToDevice));
-        baseline_Dijkstra_find_next_node<<<blocks, threadsPerBlock>>>(device_nodes, device_edges, device_weights, device_dists, device_finalized, device_min_dist_and_node);
+        baseline_Dijkstra_find_next_node<<<blocks, threadsPerBlock>>>(device_nodes, device_edges, device_weights, device_dists, device_finalized, device_min_dist_and_node, N);
         cudaCheckError ( cudaDeviceSynchronize() );
-        baseline_Dijkstra_update_dists<<<blocks, threadsPerBlock>>>(device_nodes, device_edges, device_weights, device_dists, device_finalized, device_min_dist_and_node);
+        baseline_Dijkstra_update_dists<<<blocks, threadsPerBlock>>>(device_nodes, device_edges, device_weights, device_dists, device_finalized, device_min_dist_and_node, N);
         cudaCheckError ( cudaDeviceSynchronize() );
     }
 

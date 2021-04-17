@@ -38,7 +38,7 @@ def main(args):
     # create matrix
     spW = nx.attr_sparse_matrix(G)[0]
     spW = spW.tocsr()
-    print(spW.todense())
+    # print(spW.todense())
     rng = np.random.default_rng()
     weights = rng.integers(1, max_weight, size=spW.nnz)
 
