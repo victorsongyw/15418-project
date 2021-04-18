@@ -47,18 +47,15 @@ __global__
 void baseline_Dijkstra_update_dists(uint *nodes, uint *edges, uint *weights, uint *dists,
                               bool *finalized, unsigned long long int *min_dist_and_node, int num_nodes) {
     uint u = blockIdx.x * blockDim.x + threadIdx.x;
-    if (u >= num_nodes) return;
-    uint node = *min_dist_and_node & NODE_MASK;
-    if (u != node) return;
-    
-    // printf("%d\n", u);
-    finalized[u] = true;
-    
-    for (uint i = nodes[u]; i < nodes[u+1]; i++) {
-        uint v = edges[i];
-        if (!finalized[v] && dists[u] + weights[i] < dists[v]) {
-            dists[v] = dists[u] + weights[i];
-        }
+    uint min_node = *min_dist_and_node & NODE_MASK;
+    finalized[min_node] = true;
+
+    // u is the edge index for min_node's neighboring edges
+    if (u < nodes[min_node] || u >= nodes[min_node+1]) return;
+
+    uint v = edges[u];
+    if (!finalized[v] && dists[min_node] + weights[u] < dists[v]) {
+        dists[v] = dists[min_node] + weights[u];
     }
 }
 
