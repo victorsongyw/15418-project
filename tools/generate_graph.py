@@ -12,14 +12,12 @@ def plot_distribution(spW):
     prev_row = np.insert(prev_row, 0, 0)
     row_length = row - prev_row
     
-    '''
     plt.figure()
     plt.hist(row_length)
     plt.xlabel('degree')
     plt.ylabel('number of nodes')
     plt.ylim(0,100)
     plt.savefig("degree_distribution.png")
-    '''
 
     plt.figure()
     node_id = np.arange(len(row_length))

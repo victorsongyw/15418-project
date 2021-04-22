@@ -112,10 +112,10 @@ void baseline_Dijkstra() {
 
     cudaMemcpy(dists, device_dists, N * sizeof(uint), cudaMemcpyDeviceToHost);
     
-    printf("dists:\n");
-    for (int i = 0; i < N; i++) {
-        printf("%d: %d\n", i, dists[i]);
-    }
+    // printf("dists:\n");
+    // for (int i = 0; i < N; i++) {
+    //     printf("%d: %d\n", i, dists[i]);
+    // }
 
     // end timing after result has been copied back into host memory
     double endTime = CycleTimer::currentSeconds();
@@ -128,8 +128,8 @@ void baseline_Dijkstra() {
     double overallDuration = endTime - startTime;
     double kernelDuration = kernelEndTime - kernelStartTime;
     int totalBytes = sizeof(uint) * (N + M) * 2; // TODO: UPDATE LATER
-    printf("Overall: %.3f ms\t\t[%.3f GB/s]\n", 1000.f * overallDuration, toBW(totalBytes, overallDuration));
-    printf("Kernel: %.3f ms\t\t[%.3f GB/s]\n", 1000.f * kernelDuration, toBW(totalBytes, kernelDuration));
+    printf("CUDA Baseline - Overall: %.3f ms\t\t[%.3f GB/s]\n", 1000.f * overallDuration, toBW(totalBytes, overallDuration));
+    printf("CUDA Baseline - Kernel: %.3f ms\t\t[%.3f GB/s]\n", 1000.f * kernelDuration, toBW(totalBytes, kernelDuration));
 
     cudaFree(device_nodes);
     cudaFree(device_edges);

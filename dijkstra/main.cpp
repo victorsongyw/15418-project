@@ -8,6 +8,7 @@
 #include <sstream>
 using namespace std;
 
+#include "CycleTimer.h"
 #include "input_graph.h"
 
 uint N = NUM_NODES; // number of nodes in the graph
@@ -54,6 +55,8 @@ void dijkstra_ref(uint *ref_dists) {
     }
     ref_dists[0] = 0;
 
+    double startTime = CycleTimer::currentSeconds();
+
     // Find shortest path for all vertices
     for (uint count = 0; count < N-1; count++) {
         // Find the minimum distance node from the set of unfinalized nodes.
@@ -77,6 +80,10 @@ void dijkstra_ref(uint *ref_dists) {
             }
         }
     }
+    double endTime = CycleTimer::currentSeconds();
+    double overallDuration = endTime - startTime;
+    int totalBytes = sizeof(uint) * (N + M) * 2; // TODO: UPDATE LATER
+    printf("Sequential Ref: %.3f ms\t\t[%.3f GB/s]\n", 1000.f * overallDuration, toBW(totalBytes, overallDuration));
 }
 
 
@@ -89,7 +96,8 @@ void verifyCorrectness() {
             printf("ref_dists:\n");
             for (uint j = 0; j < N; j++)
             {
-                printf("%d: %d\n", j, ref_dists[j]);
+                printf("ref %d: %d || ", j, ref_dists[j]);
+                printf("baseline %d: %d\n", j, dists[j]);
             }
             delete[] ref_dists;
             return;
