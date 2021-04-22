@@ -65,39 +65,6 @@ void baseline_Dijkstra_update_dists(uint *nodes, uint *edges, uint *weights, uin
 
 // WARP-BASED VERSION ******************************** 
 
-__global__ 
-void warp_Dijkstra_find_next_node(uint *nodes, uint *edges, uint *weights, uint *dists,
-                              bool *finalized, unsigned long long int *min_dist_and_node, int num_nodes) {
-    uint v = blockIdx.x * blockDim.x + threadIdx.x;
-    if (v >= num_nodes) return;
-
-    // copy my work to shared memory
-    __shared__ uint warp_dist[blockDim.x];
-    warp_dist[threadIdx.x] = dist[v];
-    
-    if (finalized[v]) return;
-    
-    unsigned long long int dist_and_node = ((unsigned long long int)warp_dists[threadIdx.x] << DIST_OFFSET) | (unsigned long long int)v;
-    atomicMin(min_dist_and_node, dist_and_node); // dist is the upper bits, so we overwrite only if we have a smaller dist
-}
-
-__global__ 
-void warp_Dijkstra_update_dists(uint *nodes, uint *edges, uint *weights, uint *dists,
-                              bool *finalized, unsigned long long int *min_dist_and_node, int num_nodes) {
-    uint idx = blockIdx.x * blockDim.x + threadIdx.x;
-    uint min_node = *min_dist_and_node & NODE_MASK;
-    finalized[min_node] = true;
-
-    // idx is the edge index for min_node's neighboring edges
-    if (idx >= nodes[min_node+1] - nodes[min_node]) return;
-    idx += nodes[min_node];
-
-    uint v = edges[idx];
-    if (!finalized[v] && dists[min_node] + weights[idx] < dists[v]) {
-        dists[v] = dists[min_node] + weights[idx];
-    }
-}
-
 // END WARP-BASED VERSION ******************************** 
 
 
