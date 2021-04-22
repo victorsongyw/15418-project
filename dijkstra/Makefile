@@ -7,6 +7,8 @@ CU_DEPS    :=
 
 CC_FILES   := main.cpp
 
+INC := input_graph.h
+
 ###########################################################
 
 ARCH=$(shell uname | sed -e 's/-.*//g')
@@ -36,7 +38,7 @@ clean:
 $(EXECUTABLE): dirs $(OBJS)
 		$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(LDFLAGS)
 
-$(OBJDIR)/%.o: %.cpp
+$(OBJDIR)/%.o: %.cpp $(INC)
 		$(CXX) $< $(CXXFLAGS) -c -o $@
 
 $(OBJDIR)/%.o: %.cu
