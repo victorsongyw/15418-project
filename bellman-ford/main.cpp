@@ -75,45 +75,6 @@ void BF_ref(uint *ref_dists) {
     printf("Sequential Ref - BF: %.3f ms\t\t[%.3f GB/s]\n", 1000.f * overallDuration, toBW(totalBytes, overallDuration));
 }
 
-void dijkstra_ref(uint *ref_dists) {
-    bool finalized[N]; // finalized[i] will be true if node i is finalized
-    for (uint i = 0; i < N; i++) {
-        ref_dists[i] = INT_MAX;
-        finalized[i] = false;
-    }
-    ref_dists[0] = 0;
-
-    double startTime = CycleTimer::currentSeconds();
-
-    // Find shortest path for all vertices
-    for (uint count = 0; count < N-1; count++) {
-        // Find the minimum distance node from the set of unfinalized nodes.
-        // u is 0 in the first iteration.
-        uint min_dist = INT_MAX;
-        uint u = 0;
-        for (uint v = 0; v < N; v++) {
-            if (!finalized[v] && ref_dists[v] <= min_dist) {
-                min_dist = ref_dists[v];
-                u = v;
-            }
-        }
-
-        finalized[u] = true;
-
-        // Update dist value of neighbors of the picked node
-        for (uint i = nodes[u]; i < nodes[u+1]; i++) {
-            uint v = edges[i];
-            if (!finalized[v] && ref_dists[u] + weights[i] < ref_dists[v]) {
-                ref_dists[v] = ref_dists[u] + weights[i];
-            }
-        }
-    }
-    double endTime = CycleTimer::currentSeconds();
-    double overallDuration = endTime - startTime;
-    int totalBytes = sizeof(uint) * (N + M) * 2; // TODO: UPDATE LATER
-    printf("Sequential Ref - Dijkstra: %.3f ms\t\t[%.3f GB/s]\n", 1000.f * overallDuration, toBW(totalBytes, overallDuration));
-}
-
 
 void verifyCorrectness() {
     uint *ref_dists = new uint[N];
@@ -198,9 +159,8 @@ int main(int argc, char** argv)
 
     printf("init done\n");
 
-    dijkstra_ref(dists);
-    // printCudaInfo();
-    // baseline_Dijkstra();
+    baseline_BF();
+    warp_BF();
 
     if (true)
         verifyCorrectness();

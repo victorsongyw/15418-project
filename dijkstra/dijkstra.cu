@@ -12,6 +12,8 @@
 // #define DIST_MASK 0xFFFFFFFF00000000
 #define NODE_MASK 0xFFFFFFFF
 
+#define threadsPerBlock 512
+
 extern float toBW(int bytes, float sec);
 extern uint N, M;
 extern uint *nodes, *edges, *weights, *dists;
@@ -72,12 +74,12 @@ void warp_Dijkstra_find_next_node(uint *nodes, uint *edges, uint *weights, uint 
     if (v >= num_nodes) return;
 
     // copy my work to shared memory
-    __shared__ uint warp_dist[blockDim.x];
-    warp_dist[threadIdx.x] = dist[v];
+    __shared__ uint warp_dist[threadsPerBlock];
+    warp_dist[threadIdx.x] = dists[v];
     
     if (finalized[v]) return;
     
-    unsigned long long int dist_and_node = ((unsigned long long int)warp_dists[threadIdx.x] << DIST_OFFSET) | (unsigned long long int)v;
+    unsigned long long int dist_and_node = ((unsigned long long int)warp_dist[threadIdx.x] << DIST_OFFSET) | (unsigned long long int)v;
     atomicMin(min_dist_and_node, dist_and_node); // dist is the upper bits, so we overwrite only if we have a smaller dist
 }
 
@@ -108,7 +110,6 @@ void baseline_Dijkstra() {
     unsigned long long int min_dist_and_node, *device_min_dist_and_node; // upper 32 bytes represent dist, lower 32 bytes represent node
 
     // TODO: how do we compute number of blocks and threads per block
-    const int threadsPerBlock = 512;
     const int blocks = (N + threadsPerBlock - 1) / threadsPerBlock;
 
     cudaCheckError(cudaMalloc(&device_nodes, (N+1) * sizeof(uint)));

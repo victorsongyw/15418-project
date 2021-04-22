@@ -42,7 +42,6 @@ def main(args):
 
     plot_distribution(spW)
 
-    fp = open(args.dir + '/input_graph.h', 'w')
     content = '#ifndef __input_graph_h_\n#define __input_graph_h_\n\n'
     content += '#include <stdint.h>\n\n'
 
@@ -73,6 +72,11 @@ def main(args):
 
     content += '#endif\n'
 
+    fp = open(args.dir1 + '/input_graph.h', 'w')
+    fp.write(content)
+    fp.close()
+
+    fp = open(args.dir2 + '/input_graph.h', 'w')
     fp.write(content)
     fp.close()
 
@@ -82,7 +86,9 @@ if __name__ == '__main__':
     parser.add_argument("-N", type=int, required=True, help='number of nodes ')
     parser.add_argument("-M", type=int, required=True, help='number of edges to attach from each new node ')
     parser.add_argument("-W", type=int, default=10, help='max weight ')
-    parser.add_argument('-D', '--dir', type=str, default='dijkstra', #required=True,
+    parser.add_argument('-D1', '--dir1', type=str, default='dijkstra', #required=True,
+        help='Directory to store file in ')
+    parser.add_argument('-D2', '--dir2', type=str, default='bellman-ford', #required=True,
         help='Directory to store file in ')
     
     args = parser.parse_args()

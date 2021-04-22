@@ -2,3 +2,4 @@ venv/
 obj
 *.o
 cudaDijkstra
+cudaBF

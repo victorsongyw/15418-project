@@ -1,7 +1,7 @@
 
-EXECUTABLE := cudaDijkstra
+EXECUTABLE := cudaBF
 
-CU_FILES   := dijkstra.cu
+CU_FILES   := bellman-ford.cu
 
 CU_DEPS    :=
 
@@ -20,7 +20,7 @@ LDFLAGS=-L/usr/local/depot/cuda-10.2/lib64/ -lcudart
 NVCC=nvcc
 NVCCFLAGS=-O3 -m64 --gpu-architecture compute_61 -ccbin /usr/bin/gcc
 
-OBJS=$(OBJDIR)/main.o  $(OBJDIR)/dijkstra.o
+OBJS=$(OBJDIR)/main.o  $(OBJDIR)/bellman-ford.o
 
 
 .PHONY: dirs clean
