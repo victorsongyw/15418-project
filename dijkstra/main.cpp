@@ -96,6 +96,7 @@ void verifyCorrectness() {
             printf("ref_dists:\n");
             for (uint j = 0; j < N; j++)
             {
+                if (ref_dists[j] != dists[j]) printf("--> ");
                 printf("ref %d: %d || ", j, ref_dists[j]);
                 printf("baseline %d: %d\n", j, dists[j]);
             }

@@ -51,7 +51,9 @@ void baseline_Dijkstra_update_dists(uint *nodes, uint *edges, uint *weights, uin
     finalized[min_node] = true;
 
     // u is the edge index for min_node's neighboring edges
-    if (u < nodes[min_node] || u >= nodes[min_node+1]) return;
+    // if (u < nodes[min_node] || u >= nodes[min_node+1]) return;
+    if (u >= nodes[min_node+1] - nodes[min_node]) return;
+    u += nodes[min_node];
 
     uint v = edges[u];
     if (!finalized[v] && dists[min_node] + weights[u] < dists[v]) {
