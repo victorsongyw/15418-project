@@ -3,3 +3,5 @@ obj
 *.o
 cudaDijkstra
 cudaBF
+.DS_Store
+**/.DS_Store
