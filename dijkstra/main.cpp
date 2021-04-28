@@ -172,6 +172,7 @@ int main(int argc, char** argv)
 
     // printCudaInfo();
     baseline_Dijkstra();
+    warp_Dijkstra();
 
     if (true)
         verifyCorrectness();
