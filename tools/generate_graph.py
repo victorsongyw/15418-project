@@ -80,6 +80,10 @@ def main(args):
     fp.write(content)
     fp.close()
 
+    fp = open(args.dir3 + '/input_graph.h', 'w')
+    fp.write(content)
+    fp.close()
+    
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -89,6 +93,8 @@ if __name__ == '__main__':
     parser.add_argument('-D1', '--dir1', type=str, default='dijkstra', #required=True,
         help='Directory to store file in ')
     parser.add_argument('-D2', '--dir2', type=str, default='bellman-ford', #required=True,
+        help='Directory to store file in ')
+    parser.add_argument('-D3', '--dir3', type=str, default='delta-step', #required=True,
         help='Directory to store file in ')
     
     args = parser.parse_args()
