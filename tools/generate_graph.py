@@ -89,7 +89,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-N", type=int, required=True, help='number of nodes ')
     parser.add_argument("-M", type=int, required=True, help='number of edges to attach from each new node ')
-    parser.add_argument("-W", type=int, default=10, help='max weight ')
+    parser.add_argument("-W", type=int, default=20, help='max weight ')
     parser.add_argument('-D1', '--dir1', type=str, default='dijkstra', #required=True,
         help='Directory to store file in ')
     parser.add_argument('-D2', '--dir2', type=str, default='bellman-ford', #required=True,

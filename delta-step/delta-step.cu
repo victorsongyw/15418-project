@@ -9,7 +9,7 @@
 #include "CycleTimer.h"
 
 // parameter to tune
-#define DELTA 10
+#define DELTA 5
 
 #define threadsPerBlock 512
 
@@ -35,11 +35,12 @@ inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=
 
 // BASELINE VERSION ******************************** 
 __device__ __inline__
-uint relax(uint v, uint new_dist, uint *dists, uint *bucket_num)
+uint relax(uint v, uint new_dist, uint *dists, uint *bucket_num, bool *flag)
 {
-    atomicMin(&(dists[v]), new_dist);
+    uint old_dist = atomicMin(&(dists[v]), new_dist);
     uint new_bucket = dists[v] / DELTA;
     atomicMin(&(bucket_num[v]), new_bucket);
+    *flag = (new_dist < old_dist); // actual update
     return bucket_num[v];
 }
 
@@ -60,7 +61,26 @@ void baseline_Delta_initialize(uint *nodes, uint *edges, uint *weights, uint *di
     //     bucket_num[v] = dists[v] / DELTA;
     // }
     uint new_dist = dists[cur_node] + weights[idx];
-    relax(v, new_dist, dists, bucket_num);
+    bool valid;
+    relax(v, new_dist, dists, bucket_num, &valid);
+}
+
+__global__ 
+void baseline_Delta_delete_bucket(uint *nodes, uint *edges, uint *weights, 
+    uint *dists, uint *bucket_num, uint *bucket_num_next, bool *bucket_deleted, uint current_bucket, uint num_nodes) 
+{
+    uint v = blockIdx.x * blockDim.x + threadIdx.x;
+    if (v >= num_nodes) return;
+    if (bucket_num[v] != current_bucket) 
+    {
+        // preserve other buckets
+        bucket_num_next[v] = bucket_num[v];
+    }
+    else
+    {
+        bucket_num_next[v] = INT_MAX / DELTA;
+        bucket_deleted[v] = true;
+    }
 }
 
 // one inner loop iteration for processing light edges
@@ -70,16 +90,7 @@ void baseline_Delta_process_light(uint *nodes, uint *edges, uint *weights,
 {
     uint v = blockIdx.x * blockDim.x + threadIdx.x;
     if (v >= num_nodes) return;
-    if (bucket_num[v] != current_bucket) 
-    {
-        // preserve other buckets
-        bucket_num_next[v] = bucket_num[v];
-        return;
-    }
-
-    // delete from bucket
-    bucket_deleted[v] = true;
-    bucket_num[v] = INT_MAX / DELTA;    // so that next iteration always gets an empty bucket after swapping bucket_num with .._next
+    if (bucket_num[v] != current_bucket) return;
 
     for (uint i = nodes[v]; i < nodes[v+1]; i++) {
         uint u = edges[i];
@@ -87,9 +98,10 @@ void baseline_Delta_process_light(uint *nodes, uint *edges, uint *weights,
         if (u_weight > DELTA) continue; // skip a heavy edge
         // updating an edge from v to u
         uint new_dist = dists[v] + u_weight;
-        uint new_bucket = relax(u, new_dist, dists, bucket_num_next);
-        if (new_bucket == current_bucket) *current_bucket_nonempty = true;
-        if (new_bucket > current_bucket) *next_bucket = true;
+        bool valid = false;
+        uint new_bucket = relax(u, new_dist, dists, bucket_num_next, &valid);
+        if (valid && new_bucket == current_bucket) *current_bucket_nonempty = true;
+        if (valid && new_bucket > current_bucket) *next_bucket = true;
     }
 }
 
@@ -109,8 +121,9 @@ void baseline_Delta_process_heavy(uint *nodes, uint *edges, uint *weights,
         {
             // updating an edge from v to u
             uint new_dist = dists[v] + u_weight;
-            uint new_bucket = relax(u, new_dist, dists, bucket_num);
-            if (new_bucket > current_bucket) *next_bucket = true;
+            bool valid = false;
+            uint new_bucket = relax(u, new_dist, dists, bucket_num, &valid);
+            if (valid && new_bucket > current_bucket) *next_bucket = true;
         }
     }
     bucket_deleted[v] = false; // restore for next use
@@ -174,8 +187,8 @@ void baseline_Delta() {
     double kernelStartTime = CycleTimer::currentSeconds();
 
     // should not affect correctness, just an optimization for first iteration
-    baseline_Delta_initialize<<<blocks, threadsPerBlock>>>(device_nodes, device_edges, device_weights, device_dists, device_bucket_num);
-    cudaCheckError ( cudaDeviceSynchronize() );
+    // baseline_Delta_initialize<<<blocks, threadsPerBlock>>>(device_nodes, device_edges, device_weights, device_dists, device_bucket_num);
+    // cudaCheckError ( cudaDeviceSynchronize() );
 
     next_bucket = true;
     uint i = 0;
@@ -187,14 +200,16 @@ void baseline_Delta() {
         {
             current_bucket_nonempty = false;
             cudaCheckError(cudaMemcpy(device_current_bucket_nonempty, &current_bucket_nonempty, sizeof(bool), cudaMemcpyHostToDevice));
+            baseline_Delta_delete_bucket<<<blocks, threadsPerBlock>>>(device_nodes, device_edges, device_weights, device_dists, device_bucket_num, device_bucket_num_next, device_bucket_deleted, i, N);
+            cudaCheckError ( cudaDeviceSynchronize() );
             baseline_Delta_process_light<<<blocks, threadsPerBlock>>>(device_nodes, device_edges, device_weights, device_dists, device_bucket_num, device_bucket_num_next, device_bucket_deleted, device_current_bucket_nonempty, device_next_bucket, i, N);
             cudaCheckError ( cudaDeviceSynchronize() );
             cudaCheckError(cudaMemcpy(&current_bucket_nonempty, device_current_bucket_nonempty, sizeof(bool), cudaMemcpyDeviceToHost));
 
             // swap
-            uint *tmp = bucket_num;
-            bucket_num = bucket_num_next;
-            bucket_num_next = tmp;
+            uint *tmp = device_bucket_num;
+            device_bucket_num = device_bucket_num_next;
+            device_bucket_num_next = tmp;
         }
         
         baseline_Delta_process_heavy<<<blocks, threadsPerBlock>>>(device_nodes, device_edges, device_weights, device_dists, device_bucket_num, device_bucket_deleted, device_next_bucket, i, N);
