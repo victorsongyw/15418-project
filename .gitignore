@@ -1,4 +1,5 @@
 venv/
+env/
 obj
 *.o
 cudaDijkstra

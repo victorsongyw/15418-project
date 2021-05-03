@@ -146,21 +146,6 @@ int main(int argc, char** argv)
     nodes = NODES;
     edges = EDGES;
     weights = WEIGHTS;
-
-    // printf("N=%d, M=%d\n", N, M);
-    // printf("nodes:   ");
-    // for (int i = 0; i < N + 1; i++) {
-    //     printf("%d ", nodes[i]);
-    // }
-    // printf("\nedges:   ");
-    // for (int i = 0; i < M; i++) {
-    //     printf("%d ", edges[i]);
-    // }
-    // printf("\nweights: ");
-    // for (int i = 0; i < M; i++) {
-    //     printf("%d ", weights[i]);
-    // }
-    // printf("\n");
     
     dists = new uint[N]; // will contain distances from the start node
     for (uint i = 0; i < N; i++) {

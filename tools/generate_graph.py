@@ -94,7 +94,7 @@ if __name__ == '__main__':
         help='Directory to store file in ')
     parser.add_argument('-D2', '--dir2', type=str, default='bellman-ford', #required=True,
         help='Directory to store file in ')
-    parser.add_argument('-D3', '--dir3', type=str, default='delta-step', #required=True,
+    parser.add_argument('-D3', '--dir3', type=str, default='delta-stepping', #required=True,
         help='Directory to store file in ')
     
     args = parser.parse_args()

@@ -18,8 +18,7 @@ uint *edges; // destination node of edges
 uint *weights; // weight of the edge in the corresponding index of edges
 uint *dists; // distances from the source node
 
-void baseline_Dijkstra();
-void warp_Dijkstra();
+void dijkstra(bool use_warp);
 
 // return GB/s
 float toBW(int bytes, float sec) {
@@ -146,21 +145,6 @@ int main(int argc, char** argv)
     nodes = NODES;
     edges = EDGES;
     weights = WEIGHTS;
-
-    // printf("N=%d, M=%d\n", N, M);
-    // printf("nodes:   ");
-    // for (int i = 0; i < N + 1; i++) {
-    //     printf("%d ", nodes[i]);
-    // }
-    // printf("\nedges:   ");
-    // for (int i = 0; i < M; i++) {
-    //     printf("%d ", edges[i]);
-    // }
-    // printf("\nweights: ");
-    // for (int i = 0; i < M; i++) {
-    //     printf("%d ", weights[i]);
-    // }
-    // printf("\n");
     
     dists = new uint[N]; // will contain distances from the start node
     for (uint i = 0; i < N; i++) {
@@ -171,8 +155,8 @@ int main(int argc, char** argv)
     printf("init done\n");
 
     // printCudaInfo();
-    baseline_Dijkstra();
-    warp_Dijkstra();
+    dijkstra(true);
+    dijkstra(false);
 
     if (true)
         verifyCorrectness();
