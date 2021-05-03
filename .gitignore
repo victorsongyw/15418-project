@@ -6,3 +6,6 @@ cudaDijkstra
 cudaBF
 .DS_Store
 **/.DS_Store
+
+bin/
+sssp

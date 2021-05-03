@@ -72,15 +72,7 @@ def main(args):
 
     content += '#endif\n'
 
-    fp = open(args.dir1 + '/input_graph.h', 'w')
-    fp.write(content)
-    fp.close()
-
-    fp = open(args.dir2 + '/input_graph.h', 'w')
-    fp.write(content)
-    fp.close()
-
-    fp = open(args.dir3 + '/input_graph.h', 'w')
+    fp = open(args.dir + '/input_graph.h', 'w')
     fp.write(content)
     fp.close()
     
@@ -90,11 +82,7 @@ if __name__ == '__main__':
     parser.add_argument("-N", type=int, required=True, help='number of nodes ')
     parser.add_argument("-M", type=int, required=True, help='number of edges to attach from each new node ')
     parser.add_argument("-W", type=int, default=20, help='max weight ')
-    parser.add_argument('-D1', '--dir1', type=str, default='dijkstra', #required=True,
-        help='Directory to store file in ')
-    parser.add_argument('-D2', '--dir2', type=str, default='bellman-ford', #required=True,
-        help='Directory to store file in ')
-    parser.add_argument('-D3', '--dir3', type=str, default='delta-stepping', #required=True,
+    parser.add_argument('-D', '--dir', type=str, default='src', #required=True,
         help='Directory to store file in ')
     
     args = parser.parse_args()
