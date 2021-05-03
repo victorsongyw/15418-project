@@ -95,9 +95,10 @@ void verifyCorrectness() {
             printf("ref_dists:\n");
             for (uint j = 0; j < N; j++)
             {
-                if (ref_dists[j] != dists[j]) printf("--> ");
-                printf("ref %d: %d || ", j, ref_dists[j]);
-                printf("cuda %d: %d\n", j, dists[j]);
+                if (ref_dists[j] != dists[j]) {
+                    printf("ref %d: %d || ", j, ref_dists[j]);
+                    printf("cuda %d: %d\n", j, dists[j]);
+                }
             }
             delete[] ref_dists;
             return;
@@ -170,8 +171,8 @@ int main(int argc, char** argv)
     printf("init done\n");
 
     // printCudaInfo();
+    delta_stepping(false);
     delta_stepping(true);
-    // delta_stepping(false);
 
     if (true)
         verifyCorrectness();
