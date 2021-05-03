@@ -68,10 +68,7 @@ void warp_update_neighbors(uint start, uint end, uint *edges, uint *dists, uint 
         uint u = edges[i];
         // updating an edge from v to u
         uint new_dist = warp_dists[v] + weights[i];
-        if (new_dist < dists[u]) {
-            dists[u] = new_dist;
-        }
-        // atomicMin(&(dists[u]), new_dist);
+        atomicMin(&(dists[u]), new_dist);
     }
 }
 
