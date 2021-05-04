@@ -1,17 +1,20 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>
+#include <vector>
 
 #include "CycleTimer.h"
 
-extern float toBW(int bytes, float sec);
 extern uint N, M;
 extern uint *nodes, *edges, *weights, *dists;
 
-// Adopted from https://www.geeksforgeeks.org/dijkstras-shortest-path-algorithm-greedy-algo-7/
-void delta_stepping_seq(uint *dists) {
+// Adopted from the delta-stepping paper by U. Meyers, P. Sanders
+// Available at https://www.cs.utexas.edu/~pingali/CS395T/2012sp/papers/delta-stepping.pdf
+void delta_stepping_seq(uint *dists) 
+{
     bool finalized[N]; // finalized[i] will be true if node i is finalized
-    for (uint i = 0; i < N; i++) {
+    for (uint i = 0; i < N; i++) 
+    {
         dists[i] = INT_MAX;
         finalized[i] = false;
     }
@@ -44,6 +47,5 @@ void delta_stepping_seq(uint *dists) {
     }
     double endTime = CycleTimer::currentSeconds();
     double overallDuration = endTime - startTime;
-    int totalBytes = sizeof(uint) * (N + M) * 2; // TODO: UPDATE LATER
-    printf("Sequential delta-stepping: %.3f ms\t[%.3f GB/s]\n", 1000.f * overallDuration, toBW(totalBytes, overallDuration));
+    printf("Sequential delta-stepping: %.3f ms\n", 1000.f * overallDuration);
 }

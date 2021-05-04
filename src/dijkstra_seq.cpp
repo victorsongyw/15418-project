@@ -44,6 +44,5 @@ void dijkstra_seq(uint *dists) {
     }
     double endTime = CycleTimer::currentSeconds();
     double overallDuration = endTime - startTime;
-    int totalBytes = sizeof(uint) * (N + M) * 2; // TODO: UPDATE LATER
-    printf("Sequential Dijkstra's: %.3f ms\t\t[%.3f GB/s]\n", 1000.f * overallDuration, toBW(totalBytes, overallDuration));
+    printf("Sequential Dijkstra's: %.3f ms\n", 1000.f * overallDuration);
 }

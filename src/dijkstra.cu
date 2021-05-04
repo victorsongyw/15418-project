@@ -14,7 +14,6 @@
 
 #define THREADS_PER_BLOCK 512
 
-extern float toBW(int bytes, float sec);
 extern uint N, M;
 extern uint *nodes, *edges, *weights, *dists;
 
@@ -162,30 +161,23 @@ void dijkstra_cuda(bool use_warp) {
     double kernelEndTime = CycleTimer::currentSeconds();
 
     cudaMemcpy(dists, device_dists, N * sizeof(uint), cudaMemcpyDeviceToHost);
-    
-    // printf("dists:\n");
-    // for (int i = 0; i < N; i++) {
-    //     printf("%d: %d\n", i, dists[i]);
-    // }
 
     // end timing after result has been copied back into host memory
     double endTime = CycleTimer::currentSeconds();
 
     errCode = cudaPeekAtLastError();
-    if (errCode != cudaSuccess) {
+    if (errCode != cudaSuccess)
         fprintf(stderr, "WARNING: A CUDA error occured after launching: code=%d, %s\n", errCode, cudaGetErrorString(errCode));
-    }
 
     double overallDuration = endTime - startTime;
     double kernelDuration = kernelEndTime - kernelStartTime;
-    int totalBytes = sizeof(uint) * (N + M) * 2; // TODO: UPDATE LATER
-    if (!use_warp) {
+    if (!use_warp)
         printf("CUDA Baseline\n");
-    } else {
+    else
         printf("CUDA Warp\n");
-    }
-    printf("\tOverall: %.3f ms\t\t[%.3f GB/s]\n", 1000.f * overallDuration, toBW(totalBytes, overallDuration));
-    printf("\tKernel: %.3f ms\t\t[%.3f GB/s]\n", 1000.f * kernelDuration, toBW(totalBytes, kernelDuration));
+    
+    printf("\tOverall: %.3f ms\n", 1000.f * overallDuration);
+    printf("\tKernel: %.3f ms\n", 1000.f * kernelDuration);
 
     cudaFree(device_nodes);
     cudaFree(device_edges);

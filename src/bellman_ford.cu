@@ -14,7 +14,6 @@
 #define WARPS_PER_BLOCK (THREADS_PER_BLOCK / WARP_SIZE)
 #define NODES_PER_BLOCK (THREADS_PER_BLOCK / WARP_SIZE * CHUNK_SIZE)
 
-extern float toBW(int bytes, float sec);
 extern uint N, M;
 extern uint *nodes, *edges, *weights, *dists;
 
@@ -37,16 +36,16 @@ inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=
 // BASELINE VERSION ******************************** 
 
 __global__ 
-void baseline_BF_kernel(uint *nodes, uint *edges, uint *weights, uint *dists, uint num_nodes) {
+void baseline_BF_kernel(uint *nodes, uint *edges, uint *weights, uint *dists, uint num_nodes) 
+{
     uint v = blockIdx.x * blockDim.x + threadIdx.x;
     if (v >= num_nodes) return;
     for (uint i = nodes[v]; i < nodes[v+1]; i++) {
         uint u = edges[i];
         // updating an edge from v to u
         uint new_dist = dists[v] + weights[i];
-        if (new_dist < dists[u]) {
+        if (new_dist < dists[u])
             dists[u] = new_dist;
-        }
     }
 }
 
@@ -56,15 +55,17 @@ void baseline_BF_kernel(uint *nodes, uint *edges, uint *weights, uint *dists, ui
 // WARP-BASED VERSION ******************************** 
 
 __inline__ __device__ 
-void warp_memcpy(uint start, uint offset, uint end, uint *warp_array, uint *array) {
-    for (uint i = start+offset; i < end; i += WARP_SIZE) {
+void warp_memcpy(uint start, uint offset, uint end, uint *warp_array, uint *array) 
+{
+    for (uint i = start+offset; i < end; i += WARP_SIZE) 
         warp_array[i-start] = array[i];
-    }
 }
 
 __inline__ __device__
-void warp_update_neighbors(uint start, uint end, uint *edges, uint *dists, uint *warp_dists, uint *weights, uint v) {
-    for (uint i = start; i < end; i += WARP_SIZE) {
+void warp_update_neighbors(uint start, uint end, uint *edges, uint *dists, uint *warp_dists, uint *weights, uint v) 
+{
+    for (uint i = start; i < end; i += WARP_SIZE) 
+    {
         uint u = edges[i];
         // updating an edge from v to u
         uint new_dist = warp_dists[v] + weights[i];
@@ -73,9 +74,8 @@ void warp_update_neighbors(uint start, uint end, uint *edges, uint *dists, uint 
 }
 
 __global__ 
-void warp_BF_kernel(uint *nodes, uint *edges, uint *weights, uint *dists, uint num_nodes) {
-
-    // uint idx = blockIdx.x * blockDim.x + threadIdx.x;
+void warp_BF_kernel(uint *nodes, uint *edges, uint *weights, uint *dists, uint num_nodes) 
+{
     uint warp_offset = threadIdx.x % WARP_SIZE;
     uint warp_id = threadIdx.x / WARP_SIZE;
 
@@ -97,7 +97,8 @@ void warp_BF_kernel(uint *nodes, uint *edges, uint *weights, uint *dists, uint n
     warp_memcpy(chunkStart, warp_offset, chunkEnd, warp_dists, dists);
 
     // iterate over my work
-    for (uint v = 0; v < chunkEnd - chunkStart; v++) {
+    for (uint v = 0; v < chunkEnd - chunkStart; v++) 
+    {
         uint nbr_start = warp_nodes[v];
         uint nbr_end = warp_nodes[v+1];
         warp_update_neighbors(nbr_start + warp_offset, nbr_end, edges, dists, warp_dists, weights, v);
@@ -108,13 +109,16 @@ void warp_BF_kernel(uint *nodes, uint *edges, uint *weights, uint *dists, uint n
 // END WARP-BASED VERSION ******************************** 
 
 // main function
-void bellman_ford_cuda(bool use_warp) {
+void bellman_ford_cuda(bool use_warp) 
+{
     uint *device_nodes, *device_edges, *device_weights, *device_dists;
   
     // TODO: how do we compute number of blocks and threads per block
     int blocks;
-    if (!use_warp) blocks = (N + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    else blocks = (N + NODES_PER_BLOCK - 1) / NODES_PER_BLOCK;
+    if (!use_warp) 
+        blocks = (N + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+    else 
+        blocks = (N + NODES_PER_BLOCK - 1) / NODES_PER_BLOCK;
 
     cudaCheckError(cudaMalloc(&device_nodes, (N+1) * sizeof(uint)));
     cudaCheckError(cudaMalloc(&device_edges, M * sizeof(uint)));
@@ -130,14 +134,14 @@ void bellman_ford_cuda(bool use_warp) {
     cudaCheckError(cudaMemcpy(device_dists, dists, N * sizeof(uint), cudaMemcpyHostToDevice));
 
     cudaError_t errCode = cudaPeekAtLastError();
-    if (errCode != cudaSuccess) {
+    if (errCode != cudaSuccess) 
         fprintf(stderr, "WARNING: A CUDA error occured before launching: code=%d, %s\n", errCode, cudaGetErrorString(errCode));
-    }
 
     // run kernel
     double kernelStartTime = CycleTimer::currentSeconds();
 
-    for (uint i = 0; i < N-1; i++) {
+    for (uint i = 0; i < N-1; i++) 
+    {
         if (!use_warp)
             baseline_BF_kernel<<<blocks, THREADS_PER_BLOCK>>>(device_nodes, device_edges, device_weights, device_dists, N);
         else
@@ -149,30 +153,23 @@ void bellman_ford_cuda(bool use_warp) {
     double kernelEndTime = CycleTimer::currentSeconds();
 
     cudaMemcpy(dists, device_dists, N * sizeof(uint), cudaMemcpyDeviceToHost);
-    
-    // printf("dists:\n");
-    // for (int i = 0; i < N; i++) {
-    //     printf("%d: %d\n", i, dists[i]);
-    // }
 
     // end timing after result has been copied back into host memory
     double endTime = CycleTimer::currentSeconds();
 
     errCode = cudaPeekAtLastError();
-    if (errCode != cudaSuccess) {
+    if (errCode != cudaSuccess) 
         fprintf(stderr, "WARNING: A CUDA error occured after launching: code=%d, %s\n", errCode, cudaGetErrorString(errCode));
-    }
 
     double overallDuration = endTime - startTime;
     double kernelDuration = kernelEndTime - kernelStartTime;
-    int totalBytes = sizeof(uint) * (N + M) * 2; // TODO: UPDATE LATER
-    if (!use_warp) {
+    if (!use_warp) 
         printf("CUDA Baseline\n");
-    } else {
+    else 
         printf("CUDA Warp\n");
-    }
-    printf("\tOverall: %.3f ms\t\t[%.3f GB/s]\n", 1000.f * overallDuration, toBW(totalBytes, overallDuration));
-    printf("\tKernel: %.3f ms\t\t[%.3f GB/s]\n", 1000.f * kernelDuration, toBW(totalBytes, kernelDuration));
+    
+    printf("\tOverall: %.3f ms\n", 1000.f * overallDuration);
+    printf("\tKernel: %.3f ms\n", 1000.f * kernelDuration);
 
     cudaFree(device_nodes);
     cudaFree(device_edges);

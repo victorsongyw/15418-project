@@ -17,7 +17,6 @@
 #define WARPS_PER_BLOCK (THREADS_PER_BLOCK / WARP_SIZE)
 #define NODES_PER_BLOCK (THREADS_PER_BLOCK / WARP_SIZE * CHUNK_SIZE)
 
-extern float toBW(int bytes, float sec);
 extern uint N, M;
 extern uint *nodes, *edges, *weights, *dists;
 
@@ -238,18 +237,14 @@ void delta_stepping_cuda(bool use_warp) {
             
             cudaCheckError(cudaMemcpy(device_bucket_num_next, device_bucket_num, N * sizeof(uint), cudaMemcpyDeviceToDevice));
     
-            if (!use_warp) {
-                // run baseline kernels
+            if (!use_warp)
                 baseline_delta_process<<<blocks, THREADS_PER_BLOCK>>>(
                     true, device_nodes, device_edges, device_weights, device_dists, device_bucket_num,
                     curr_bucket, N, device_bucket_num_next, device_curr_bucket_nonempty);
-            }
-            else {
-                // run warp-centric kernels
+            else
                 warp_delta_process<<<blocks, THREADS_PER_BLOCK>>>(
                     true, device_nodes, device_edges, device_weights, device_dists, device_bucket_num, 
                     curr_bucket, N, device_bucket_num_next, device_curr_bucket_nonempty);
-            }
             cudaCheckError(cudaDeviceSynchronize());
             cudaCheckError(cudaMemcpy(&curr_bucket_nonempty, device_curr_bucket_nonempty, sizeof(bool), cudaMemcpyDeviceToHost));
             
@@ -257,22 +252,18 @@ void delta_stepping_cuda(bool use_warp) {
             std::swap(device_bucket_num, device_bucket_num_next);
         }
          
-        if (!use_warp) {
-            // run baseline kernels
+        if (!use_warp)
             baseline_delta_process<<<blocks, THREADS_PER_BLOCK>>>(
                 false, device_nodes, device_edges, device_weights, device_dists, device_bucket_num, curr_bucket, N);
-        }
-        else {
+        else
             warp_delta_process<<<blocks, THREADS_PER_BLOCK>>>(
                 false, device_nodes, device_edges, device_weights, device_dists, device_bucket_num, curr_bucket, N);
-        }
 
         cudaCheckError(cudaDeviceSynchronize());
 
         next_bucket = INT_MAX;
         cudaCheckError(cudaMemcpy(device_next_bucket, &next_bucket, sizeof(uint), cudaMemcpyHostToDevice));
-        delta_find_next_bucket<<<blocks, THREADS_PER_BLOCK>>>(
-                    device_bucket_num, device_next_bucket, curr_bucket, N);
+        delta_find_next_bucket<<<blocks, THREADS_PER_BLOCK>>>(device_bucket_num, device_next_bucket, curr_bucket, N);
         cudaCheckError(cudaDeviceSynchronize());
         cudaCheckError(cudaMemcpy(&next_bucket, device_next_bucket, sizeof(uint), cudaMemcpyDeviceToHost));
         if (next_bucket == INT_MAX) break; // WE ARE DONE
@@ -282,30 +273,23 @@ void delta_stepping_cuda(bool use_warp) {
     double kernelEndTime = CycleTimer::currentSeconds();
 
     cudaMemcpy(dists, device_dists, N * sizeof(uint), cudaMemcpyDeviceToHost);
-    
-    // printf("dists:\n");
-    // for (int i = 0; i < N; i++) {
-    //     printf("%d: %d\n", i, dists[i]);
-    // }
 
     // end timing after result has been copied back into host memory
     double endTime = CycleTimer::currentSeconds();
 
     errCode = cudaPeekAtLastError();
-    if (errCode != cudaSuccess) {
+    if (errCode != cudaSuccess) 
         fprintf(stderr, "WARNING: A CUDA error occured after launching: code=%d, %s\n", errCode, cudaGetErrorString(errCode));
-    }
 
     double overallDuration = endTime - startTime;
     double kernelDuration = kernelEndTime - kernelStartTime;
-    int totalBytes = sizeof(uint) * (N + M) * 2; // TODO: UPDATE LATER
-    if (!use_warp) {
+    if (!use_warp) 
         printf("CUDA Baseline\n");
-    } else {
+    else 
         printf("CUDA Warp\n");
-    }
-    printf("\tOverall: %.3f ms\t\t[%.3f GB/s]\n", 1000.f * overallDuration, toBW(totalBytes, overallDuration));
-    printf("\tKernel: %.3f ms\t\t[%.3f GB/s]\n", 1000.f * kernelDuration, toBW(totalBytes, kernelDuration));
+
+    printf("\tOverall: %.3f ms\n", 1000.f * overallDuration);
+    printf("\tKernel: %.3f ms\n", 1000.f * kernelDuration);
 
     cudaCheckError(cudaFree(device_nodes));
     cudaCheckError(cudaFree(device_edges));
