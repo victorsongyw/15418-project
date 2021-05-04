@@ -5,7 +5,7 @@
 #include "CycleTimer.h"
 
 extern uint N, M;
-extern uint *nodes, *edges, *weights, *dists;
+extern uint *nodes, *edges, *weights;
 
 void bellman_ford_seq(uint *dists)
 {

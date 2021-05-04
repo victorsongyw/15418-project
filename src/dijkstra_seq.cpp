@@ -6,7 +6,7 @@
 
 extern float toBW(int bytes, float sec);
 extern uint N, M;
-extern uint *nodes, *edges, *weights, *dists;
+extern uint *nodes, *edges, *weights;
 
 void dijkstra_seq(uint *dists) {
     //TODO: implement
