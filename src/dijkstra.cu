@@ -103,7 +103,7 @@ void warp_Dijkstra_update_dists(uint *nodes, uint *edges, uint *weights, uint *d
 // END WARP-BASED VERSION ******************************** 
 
 // main function
-void dijkstra(bool use_warp) {
+void dijkstra_cuda(bool use_warp) {
     uint *device_nodes, *device_edges, *device_weights, *device_dists;
     bool *finalized;
     bool *device_finalized;
@@ -179,8 +179,13 @@ void dijkstra(bool use_warp) {
     double overallDuration = endTime - startTime;
     double kernelDuration = kernelEndTime - kernelStartTime;
     int totalBytes = sizeof(uint) * (N + M) * 2; // TODO: UPDATE LATER
-    printf("CUDA Baseline - Overall: %.3f ms\t\t[%.3f GB/s]\n", 1000.f * overallDuration, toBW(totalBytes, overallDuration));
-    printf("CUDA Baseline - Kernel: %.3f ms\t\t[%.3f GB/s]\n", 1000.f * kernelDuration, toBW(totalBytes, kernelDuration));
+    if (!use_warp) {
+        printf("CUDA Baseline\n");
+    } else {
+        printf("CUDA Warp\n");
+    }
+    printf("\tOverall: %.3f ms\t\t[%.3f GB/s]\n", 1000.f * overallDuration, toBW(totalBytes, overallDuration));
+    printf("\tKernel: %.3f ms\t\t[%.3f GB/s]\n", 1000.f * kernelDuration, toBW(totalBytes, kernelDuration));
 
     cudaFree(device_nodes);
     cudaFree(device_edges);

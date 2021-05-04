@@ -178,7 +178,7 @@ void warp_delta_process(bool process_light, uint *nodes, uint *edges, uint *weig
 
 
 // main function
-void delta_stepping(bool use_warp) {
+void delta_stepping_cuda(bool use_warp) {
     uint *device_nodes, *device_edges, *device_weights, *device_dists;
     uint *bucket_num, *bucket_num_next;    // which bucket the node belongs to
     uint *device_bucket_num, *device_bucket_num_next;

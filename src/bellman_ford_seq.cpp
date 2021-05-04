@@ -1,12 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>
-#include <getopt.h>
-#include <string>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-using namespace std;
 
 #include "CycleTimer.h"
 
@@ -14,13 +8,13 @@ extern float toBW(int bytes, float sec);
 extern uint N, M;
 extern uint *nodes, *edges, *weights, *dists;
 
-void BF_ref(uint *ref_dists)
+void bellman_ford_seq(uint *dists)
 {
     for (uint i = 0; i < N; i++)
     {
-        ref_dists[i] = INT_MAX;
+        dists[i] = INT_MAX;
     }
-    ref_dists[0] = 0;
+    dists[0] = 0;
 
     double startTime = CycleTimer::currentSeconds();
 
@@ -34,10 +28,10 @@ void BF_ref(uint *ref_dists)
             {
                 uint u = edges[i];
                 // updating an edge from v to u
-                uint new_dist = ref_dists[v] + weights[i];
-                if (new_dist < ref_dists[u])
+                uint new_dist = dists[v] + weights[i];
+                if (new_dist < dists[u])
                 {
-                    ref_dists[u] = new_dist;
+                    dists[u] = new_dist;
                 }
             }
         }
@@ -45,5 +39,5 @@ void BF_ref(uint *ref_dists)
     double endTime = CycleTimer::currentSeconds();
     double overallDuration = endTime - startTime;
     int totalBytes = sizeof(uint) * (N + M) * 2; // TODO: UPDATE LATER
-    printf("Sequential Ref - BF: %.3f ms\t\t[%.3f GB/s]\n", 1000.f * overallDuration, toBW(totalBytes, overallDuration));
+    printf("Sequential Bellman-Ford: %.3f ms\t[%.3f GB/s]\n", 1000.f * overallDuration, toBW(totalBytes, overallDuration));
 }
