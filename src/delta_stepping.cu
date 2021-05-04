@@ -49,12 +49,12 @@ uint relax(uint v, uint new_dist, uint *dists, uint *bucket_num, bool *flag)
 }
 
 __global__
-void delta_find_next_bucket(uint *bucket_num, uint *next_bucket, uint curr_bucket, uint num_nodes) {
+void delta_find_next_bucket(uint *bucket_num, uint *next_bucket, uint curr_bucket, uint num_nodes) 
+{
     uint v = blockIdx.x * blockDim.x + threadIdx.x;
     if (v >= num_nodes) return;
-    if (bucket_num[v] > curr_bucket) {
+    if (bucket_num[v] > curr_bucket)
         atomicMin(next_bucket, bucket_num[v]);
-    }
 }
 
 // BASELINE VERSION ******************************** 
@@ -88,16 +88,19 @@ void baseline_delta_process(bool process_light, uint *nodes, uint *edges, uint *
     if (v >= num_nodes) return;
     if (bucket_num[v] != curr_bucket) return;
 
-    for (uint i = nodes[v]; i < nodes[v+1]; i++) {
+    for (uint i = nodes[v]; i < nodes[v+1]; i++) 
+    {
         uint u = edges[i];
         uint u_weight = weights[i];
-        if (u_weight > DELTA && !process_light) {
+        if (u_weight > DELTA && !process_light) 
+        {
             // updating a heavy edge from v to u
             uint new_dist = dists[v] + u_weight;
             bool updated = false;
             relax(u, new_dist, dists, bucket_num, &updated);
         }
-        else if (u_weight <= DELTA && process_light) {
+        else if (u_weight <= DELTA && process_light) 
+        {
             // updating a light edge from v to u
             uint new_dist = dists[v] + u_weight;
             bool updated = false;
@@ -113,10 +116,10 @@ void baseline_delta_process(bool process_light, uint *nodes, uint *edges, uint *
 // WARP-BASED VERSION ******************************** 
 
 __inline__ __device__ 
-void warp_memcpy(uint start, uint offset, uint end, uint *warp_array, uint *array) {
-    for (uint i = start+offset; i < end; i += WARP_SIZE) {
+void warp_memcpy(uint start, uint offset, uint end, uint *warp_array, uint *array) 
+{
+    for (uint i = start+offset; i < end; i += WARP_SIZE)
         warp_array[i-start] = array[i];
-    }
 }
 
 __global__
@@ -147,21 +150,25 @@ void warp_delta_process(bool process_light, uint *nodes, uint *edges, uint *weig
     warp_memcpy(chunkStart, warp_offset, chunkEnd, warp_bucket_num, bucket_num);
 
     // iterate over my work
-    for (uint v = 0; v < chunkEnd - chunkStart; v++) {
-        if (warp_bucket_num[v] == curr_bucket) {
+    for (uint v = 0; v < chunkEnd - chunkStart; v++) 
+    {
+        if (warp_bucket_num[v] == curr_bucket) 
+        {
             uint nbr_start = warp_nodes[v]; 
             uint nbr_end = warp_nodes[v+1];
             for (uint i = nbr_start + warp_offset; i < nbr_end; i += WARP_SIZE) {
                 uint u = edges[i];
                 uint u_weight = weights[i];
 
-                if (u_weight > DELTA && !process_light) {
+                if (u_weight > DELTA && !process_light) 
+                {
                     // updating a heavy edge from v to u
                     uint new_dist = warp_dists[v] + u_weight;
                     bool updated = false;
                     relax(u, new_dist, dists, bucket_num, &updated);
                 }
-                else if (u_weight <= DELTA && process_light) {
+                else if (u_weight <= DELTA && process_light) 
+                {
                     // updating a light edge from v to u
                     uint new_dist = warp_dists[v] + u_weight;
                     bool updated = false;
@@ -177,7 +184,8 @@ void warp_delta_process(bool process_light, uint *nodes, uint *edges, uint *weig
 
 
 // main function
-void delta_stepping_cuda(bool use_warp) {
+void delta_stepping_cuda(bool use_warp) 
+{
     uint *device_nodes, *device_edges, *device_weights, *device_dists;
     uint *bucket_num, *bucket_num_next;    // which bucket the node belongs to
     uint *device_bucket_num, *device_bucket_num_next;
@@ -200,7 +208,8 @@ void delta_stepping_cuda(bool use_warp) {
 
     bucket_num = new uint[N];
     bucket_num_next = new uint[N];
-    for (uint i = 0; i < N; i++) {
+    for (uint i = 0; i < N; i++) 
+    {
         bucket_num[i] = dists[i] / DELTA;
         bucket_num_next[i] = dists[i] / DELTA;
     }
@@ -216,9 +225,8 @@ void delta_stepping_cuda(bool use_warp) {
     cudaCheckError(cudaMemcpy(device_bucket_num_next, bucket_num_next, N * sizeof(uint), cudaMemcpyHostToDevice));
     
     cudaError_t errCode = cudaPeekAtLastError();
-    if (errCode != cudaSuccess) {
+    if (errCode != cudaSuccess)
         fprintf(stderr, "WARNING: A CUDA error occured before launching: code=%d, %s\n", errCode, cudaGetErrorString(errCode));
-    }
 
     // run kernel
     double kernelStartTime = CycleTimer::currentSeconds();

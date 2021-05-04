@@ -40,7 +40,8 @@ void baseline_BF_kernel(uint *nodes, uint *edges, uint *weights, uint *dists, ui
 {
     uint v = blockIdx.x * blockDim.x + threadIdx.x;
     if (v >= num_nodes) return;
-    for (uint i = nodes[v]; i < nodes[v+1]; i++) {
+    for (uint i = nodes[v]; i < nodes[v+1]; i++) 
+    {
         uint u = edges[i];
         // updating an edge from v to u
         uint new_dist = dists[v] + weights[i];

@@ -36,17 +36,21 @@ inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=
 // BASELINE VERSION ******************************** 
 __global__ 
 void baseline_Dijkstra_find_next_node(uint *nodes, uint *edges, uint *weights, uint *dists,
-                              bool *finalized, unsigned long long int *min_dist_and_node, int num_nodes) {
+                              bool *finalized, unsigned long long int *min_dist_and_node, int num_nodes) 
+{
     uint v = blockIdx.x * blockDim.x + threadIdx.x;
     if (v >= num_nodes) return;
     if (finalized[v]) return;
-    unsigned long long int dist_and_node = ((unsigned long long int)dists[v] << DIST_OFFSET) | (unsigned long long int)v;
-    atomicMin(min_dist_and_node, dist_and_node); // dist is the upper bits, so we overwrite only if we have a smaller dist
+    unsigned long long int dist_and_node = ((unsigned long long int)dists[v] << DIST_OFFSET) 
+                                            | (unsigned long long int)v;
+    // dist is the upper bits, so we overwrite only if we have a smaller dist
+    atomicMin(min_dist_and_node, dist_and_node); 
 }
 
 __global__ 
 void baseline_Dijkstra_update_dists(uint *nodes, uint *edges, uint *weights, uint *dists,
-                              bool *finalized, unsigned long long int *min_dist_and_node, int num_nodes) {
+                              bool *finalized, unsigned long long int *min_dist_and_node, int num_nodes) 
+{
     uint idx = blockIdx.x * blockDim.x + threadIdx.x;
     uint min_node = *min_dist_and_node & NODE_MASK;
     finalized[min_node] = true;
@@ -68,7 +72,8 @@ void baseline_Dijkstra_update_dists(uint *nodes, uint *edges, uint *weights, uin
 
 __global__ 
 void warp_Dijkstra_find_next_node(uint *nodes, uint *edges, uint *weights, uint *dists,
-                              bool *finalized, unsigned long long int *min_dist_and_node, int num_nodes) {
+                              bool *finalized, unsigned long long int *min_dist_and_node, int num_nodes) 
+{
     uint v = blockIdx.x * blockDim.x + threadIdx.x;
     if (v >= num_nodes) return;
 
@@ -78,13 +83,16 @@ void warp_Dijkstra_find_next_node(uint *nodes, uint *edges, uint *weights, uint 
     
     if (finalized[v]) return;
     
-    unsigned long long int dist_and_node = ((unsigned long long int)warp_dist[threadIdx.x] << DIST_OFFSET) | (unsigned long long int)v;
-    atomicMin(min_dist_and_node, dist_and_node); // dist is the upper bits, so we overwrite only if we have a smaller dist
+    unsigned long long int dist_and_node = ((unsigned long long int)warp_dist[threadIdx.x] << DIST_OFFSET) 
+                                            | (unsigned long long int)v;
+    // dist is the upper bits, so we overwrite only if we have a smaller dist
+    atomicMin(min_dist_and_node, dist_and_node);
 }
 
 __global__ 
 void warp_Dijkstra_update_dists(uint *nodes, uint *edges, uint *weights, uint *dists,
-                              bool *finalized, unsigned long long int *min_dist_and_node, int num_nodes) {
+                              bool *finalized, unsigned long long int *min_dist_and_node, int num_nodes) 
+{
     uint idx = blockIdx.x * blockDim.x + threadIdx.x;
     uint min_node = *min_dist_and_node & NODE_MASK;
     finalized[min_node] = true;
@@ -94,15 +102,15 @@ void warp_Dijkstra_update_dists(uint *nodes, uint *edges, uint *weights, uint *d
     idx += nodes[min_node];
 
     uint v = edges[idx];
-    if (!finalized[v] && dists[min_node] + weights[idx] < dists[v]) {
+    if (!finalized[v] && dists[min_node] + weights[idx] < dists[v])
         dists[v] = dists[min_node] + weights[idx];
-    }
 }
 
 // END WARP-BASED VERSION ******************************** 
 
 // main function
-void dijkstra_cuda(bool use_warp) {
+void dijkstra_cuda(bool use_warp) 
+{
     uint *device_nodes, *device_edges, *device_weights, *device_dists;
     bool *finalized;
     bool *device_finalized;
@@ -119,9 +127,8 @@ void dijkstra_cuda(bool use_warp) {
     cudaCheckError(cudaMalloc(&device_min_dist_and_node, sizeof(unsigned long long int)));
 
     finalized = new bool[N];
-    for (uint i = 0; i < N; i++) {
+    for (uint i = 0; i < N; i++)
         finalized[i] = false;
-    }
 
     // start timing after allocation of device memory
     double startTime = CycleTimer::currentSeconds();
@@ -133,27 +140,31 @@ void dijkstra_cuda(bool use_warp) {
     cudaCheckError(cudaMemcpy(device_finalized, finalized, N * sizeof(bool), cudaMemcpyHostToDevice));
 
     cudaError_t errCode = cudaPeekAtLastError();
-    if (errCode != cudaSuccess) {
+    if (errCode != cudaSuccess)
         fprintf(stderr, "WARNING: A CUDA error occured before launching: code=%d, %s\n", errCode, cudaGetErrorString(errCode));
-    }
 
     // run kernel
     double kernelStartTime = CycleTimer::currentSeconds();
 
-    for (uint i = 0; i < N-1; i++) {
+    for (uint i = 0; i < N-1; i++) 
+    {
         min_dist_and_node = ULLONG_MAX;
         cudaCheckError(cudaMemcpy(device_min_dist_and_node, &min_dist_and_node, sizeof(unsigned long long int), cudaMemcpyHostToDevice));
         if (!use_warp) 
-            baseline_Dijkstra_find_next_node<<<blocks, THREADS_PER_BLOCK>>>(device_nodes, device_edges, device_weights, device_dists, device_finalized, device_min_dist_and_node, N);
+            baseline_Dijkstra_find_next_node<<<blocks, THREADS_PER_BLOCK>>>(
+                device_nodes, device_edges, device_weights, device_dists, device_finalized, device_min_dist_and_node, N);
         else
-            warp_Dijkstra_find_next_node<<<blocks, THREADS_PER_BLOCK>>>(device_nodes, device_edges, device_weights, device_dists, device_finalized, device_min_dist_and_node, N);
+            warp_Dijkstra_find_next_node<<<blocks, THREADS_PER_BLOCK>>>(
+                device_nodes, device_edges, device_weights, device_dists, device_finalized, device_min_dist_and_node, N);
         
         cudaCheckError(cudaDeviceSynchronize());
 
         if (!use_warp)
-            baseline_Dijkstra_update_dists<<<blocks, THREADS_PER_BLOCK>>>(device_nodes, device_edges, device_weights, device_dists, device_finalized, device_min_dist_and_node, N);
+            baseline_Dijkstra_update_dists<<<blocks, THREADS_PER_BLOCK>>>(
+                device_nodes, device_edges, device_weights, device_dists, device_finalized, device_min_dist_and_node, N);
         else
-            warp_Dijkstra_update_dists<<<blocks, THREADS_PER_BLOCK>>>(device_nodes, device_edges, device_weights, device_dists, device_finalized, device_min_dist_and_node, N);
+            warp_Dijkstra_update_dists<<<blocks, THREADS_PER_BLOCK>>>(
+                device_nodes, device_edges, device_weights, device_dists, device_finalized, device_min_dist_and_node, N);
         
         cudaCheckError(cudaDeviceSynchronize());
     }
