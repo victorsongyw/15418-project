@@ -51,6 +51,10 @@ enum Version { SEQ, BASE, WARP, VER_NIL };
 void verifyCorrectness() 
 {
     uint *ref_dists = new uint[N];
+    ref_dists[0] = 0;
+    for (uint i = 0; i < N; i++)
+        ref_dists[i] = INT_MAX;
+        
     dijkstra_seq(ref_dists);
     for (uint i = 0; i < N; i++) 
     {
@@ -157,10 +161,9 @@ int main(int argc, char** argv)
     weights = WEIGHTS;
     
     dists = new uint[N]; // will contain distances from the start node
+    dists[0] = 0;
     for (uint i = 0; i < N; i++)
         dists[i] = INT_MAX;
-
-    dists[0] = 0;
 
     printf("Init done\n");
 

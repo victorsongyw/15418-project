@@ -9,11 +9,6 @@ extern uint *nodes, *edges, *weights;
 
 void bellman_ford_seq(uint *dists)
 {
-    for (uint i = 0; i < N; i++) 
-        dists[i] = INT_MAX;
-    
-    dists[0] = 0;
-
     double startTime = CycleTimer::currentSeconds();
 
     // Relax all edges N-1 times
