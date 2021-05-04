@@ -1,8 +1,7 @@
 # Warp-Centric CUDA Programming for SSSP Algorithms
 
-## 15-418 S21 Final Project
-
-## Authors: Yiwen (Victor) Song, Xingran Du
+**15-418 S21 Final Project**  
+**Authors: Yiwen (Victor) Song, Xingran Du**
 
 
 
