@@ -31,7 +31,11 @@ def main(args):
     m = args.M
     max_weight = args.W
 
-    G = nx.barabasi_albert_graph(n, m)  # m < n, m is num edges for each new node
+    if (args.model == 'scale-free'):
+        G = nx.barabasi_albert_graph(n, m)  # m < n, m is num edges for each new node
+    else:
+        # random; the definition of m is different
+        G = nx.gnm_random_graph(n, m*n)
 
     # create matrix
     spW = nx.attr_sparse_matrix(G)[0]
@@ -79,8 +83,9 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument("--model", type=str, required=True, choices=['scale-free', 'random'], help='scale-free / random ')
     parser.add_argument("-N", type=int, required=True, help='number of nodes ')
-    parser.add_argument("-M", type=int, required=True, help='number of edges to attach from each new node ')
+    parser.add_argument("-M", type=int, default=12, help='number of edges to attach from each new node ')
     parser.add_argument("-W", type=int, default=20, help='max weight ')
     parser.add_argument('-D', '--dir', type=str, default='src', #required=True,
         help='Directory to store file in ')

@@ -9,3 +9,6 @@ cudaBF
 
 bin/
 sssp
+
+degree_*.png
+input_graph.h
