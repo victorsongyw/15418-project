@@ -84,7 +84,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, required=True, choices=['scale-free', 'random'], help='scale-free / random ')
-    parser.add_argument("-N", type=int, required=True, help='number of nodes ')
+    parser.add_argument("-N", type=lambda x: int(float(x)), required=True, help='number of nodes ')
     parser.add_argument("-M", type=int, default=12, help='number of edges to attach from each new node ')
     parser.add_argument("-W", type=int, default=20, help='max weight ')
     parser.add_argument('-D', '--dir', type=str, default='src', #required=True,
