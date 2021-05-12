@@ -24,6 +24,7 @@ The last command generates a random graph with 10000 nodes and close to `10000 *
 make clean; make  
 ./sssp -a <dijkstra/bellman-ford/delta-stepping> -v <seq/base/warp>
 ```
+This runs the chosen algorithm on the input graph in input_graph.h.  
 Add the `-c` flag if you want to verify correctness against sequential Dijkstra's.  
-You should be able to see the runtime and bandwidth of the execution of the algorithm on the input graph in input_graph.h
+You should be able to see the runtime printed out when the execution finishes.
 
