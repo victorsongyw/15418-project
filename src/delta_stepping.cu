@@ -62,27 +62,6 @@ void delta_find_next_bucket(uint *bucket_num, uint *next_bucket, uint curr_bucke
 // BASELINE VERSION ******************************** 
 
 __global__ 
-void baseline_delta_initialize(uint *nodes, uint *edges, uint *weights, uint *dists, 
-    uint *bucket_num)
-{
-    uint idx = blockIdx.x * blockDim.x + threadIdx.x;
-    uint cur_node = 0;
-
-    // idx is the edge index for min_node's neighboring edges
-    if (idx >= nodes[cur_node+1] - nodes[cur_node]) return;
-    idx += nodes[cur_node];
-
-    uint v = edges[idx];
-    // if (dists[cur_node] + weights[idx] < dists[v]) {
-    //     dists[v] = dists[cur_node] + weights[idx];
-    //     bucket_num[v] = dists[v] / DELTA_device;
-    // }
-    uint new_dist = dists[cur_node] + weights[idx];
-    bool updated;
-    relax(v, new_dist, dists, bucket_num, &updated);
-}
-
-__global__ 
 void baseline_delta_process(bool process_light, uint *nodes, uint *edges, uint *weights, uint *dists, uint *bucket_num, 
     uint curr_bucket, uint num_nodes, uint *bucket_num_next = NULL, bool *curr_bucket_nonempty = NULL) 
 {
@@ -194,7 +173,6 @@ void delta_stepping_cuda(bool use_warp)
     bool curr_bucket_nonempty, *device_curr_bucket_nonempty;
     uint next_bucket, *device_next_bucket;
 
-    // TODO: how do we compute number of blocks and threads per block
     int blocks;
     if (!use_warp) blocks = (N + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     else blocks = (N + NODES_PER_BLOCK - 1) / NODES_PER_BLOCK;
