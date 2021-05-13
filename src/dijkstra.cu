@@ -9,7 +9,6 @@
 #include "CycleTimer.h"
 
 #define DIST_OFFSET 32
-// #define DIST_MASK 0xFFFFFFFF00000000
 #define NODE_MASK 0xFFFFFFFF
 
 #define THREADS_PER_BLOCK 512
@@ -116,7 +115,6 @@ void dijkstra_cuda(bool use_warp)
     bool *device_finalized;
     unsigned long long int min_dist_and_node, *device_min_dist_and_node; // upper 32 bytes represent dist, lower 32 bytes represent node
 
-    // TODO: how do we compute number of blocks and threads per block
     int blocks = (N + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
 
     cudaCheckError(cudaMalloc(&device_nodes, (N+1) * sizeof(uint)));
