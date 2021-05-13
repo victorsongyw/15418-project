@@ -3,7 +3,7 @@
 **15-418 S21 Final Project**  
 **Authors: Yiwen (Victor) Song, Xingran Du**
 
-
+**See Project_Final_Report.pdf for project description and results**
 
 ## Running the project on a GHC machine
 
