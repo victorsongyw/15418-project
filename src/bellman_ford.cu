@@ -115,7 +115,6 @@ void bellman_ford_cuda(bool use_warp)
 {
     uint *device_nodes, *device_edges, *device_weights, *device_dists;
   
-    // TODO: how do we compute number of blocks and threads per block
     int blocks;
     if (!use_warp) 
         blocks = (N + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
