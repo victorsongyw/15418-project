@@ -10,7 +10,9 @@
 #include "CycleTimer.h"
 
 // parameter to tune
-#define DELTA 5
+extern uint DELTA;
+__device__ uint DELTA_device;
+
 #define THREADS_PER_BLOCK 512
 #define CHUNK_SIZE 8 // can be also thought as nodes per chunk
 #define WARP_SIZE 32
@@ -42,7 +44,7 @@ __device__ __inline__
 uint relax(uint v, uint new_dist, uint *dists, uint *bucket_num, bool *flag)
 {
     uint old_dist = atomicMin(&(dists[v]), new_dist);
-    uint new_bucket = dists[v] / DELTA;
+    uint new_bucket = dists[v] / DELTA_device;
     atomicMin(&(bucket_num[v]), new_bucket);
     *flag = (new_dist < old_dist);
     return bucket_num[v];
@@ -73,7 +75,7 @@ void baseline_delta_initialize(uint *nodes, uint *edges, uint *weights, uint *di
     uint v = edges[idx];
     // if (dists[cur_node] + weights[idx] < dists[v]) {
     //     dists[v] = dists[cur_node] + weights[idx];
-    //     bucket_num[v] = dists[v] / DELTA;
+    //     bucket_num[v] = dists[v] / DELTA_device;
     // }
     uint new_dist = dists[cur_node] + weights[idx];
     bool updated;
@@ -92,14 +94,14 @@ void baseline_delta_process(bool process_light, uint *nodes, uint *edges, uint *
     {
         uint u = edges[i];
         uint u_weight = weights[i];
-        if (u_weight > DELTA && !process_light) 
+        if (u_weight > DELTA_device && !process_light) 
         {
             // updating a heavy edge from v to u
             uint new_dist = dists[v] + u_weight;
             bool updated = false;
             relax(u, new_dist, dists, bucket_num, &updated);
         }
-        else if (u_weight <= DELTA && process_light) 
+        else if (u_weight <= DELTA_device && process_light) 
         {
             // updating a light edge from v to u
             uint new_dist = dists[v] + u_weight;
@@ -160,14 +162,14 @@ void warp_delta_process(bool process_light, uint *nodes, uint *edges, uint *weig
                 uint u = edges[i];
                 uint u_weight = weights[i];
 
-                if (u_weight > DELTA && !process_light) 
+                if (u_weight > DELTA_device && !process_light) 
                 {
                     // updating a heavy edge from v to u
                     uint new_dist = warp_dists[v] + u_weight;
                     bool updated = false;
                     relax(u, new_dist, dists, bucket_num, &updated);
                 }
-                else if (u_weight <= DELTA && process_light) 
+                else if (u_weight <= DELTA_device && process_light) 
                 {
                     // updating a light edge from v to u
                     uint new_dist = warp_dists[v] + u_weight;
@@ -217,6 +219,7 @@ void delta_stepping_cuda(bool use_warp)
     // start timing after allocation of device memory
     double startTime = CycleTimer::currentSeconds();
 
+    cudaCheckError(cudaMemcpyToSymbol(DELTA_device, &DELTA, sizeof(uint)));
     cudaCheckError(cudaMemcpy(device_nodes, nodes, (N+1) * sizeof(uint), cudaMemcpyHostToDevice));
     cudaCheckError(cudaMemcpy(device_edges, edges, M * sizeof(uint), cudaMemcpyHostToDevice));
     cudaCheckError(cudaMemcpy(device_weights, weights, M * sizeof(uint), cudaMemcpyHostToDevice));
@@ -230,10 +233,6 @@ void delta_stepping_cuda(bool use_warp)
 
     // run kernel
     double kernelStartTime = CycleTimer::currentSeconds();
-
-    // should not affect correctness, just an optimization for first iteration
-    // baseline_delta_initialize<<<blocks, THREADS_PER_BLOCK>>>(device_nodes, device_edges, device_weights, device_dists, device_bucket_num);
-    // cudaCheckError(cudaDeviceSynchronize());
 
     uint curr_bucket = 0;
     while (true) {

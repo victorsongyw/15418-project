@@ -10,7 +10,8 @@
 
 #define THREADS_PER_BLOCK 512
 #define CHUNK_SIZE 8 // can be also thought as nodes per chunk
-#define WARP_SIZE 32
+// #define WARP_SIZE 32
+#define WARP_SIZE 4
 #define WARPS_PER_BLOCK (THREADS_PER_BLOCK / WARP_SIZE)
 #define NODES_PER_BLOCK (THREADS_PER_BLOCK / WARP_SIZE * CHUNK_SIZE)
 

@@ -7,7 +7,7 @@ using namespace std;
 
 #include "CycleTimer.h"
 
-#define DELTA 5
+extern uint DELTA;
 
 extern uint N, M;
 extern uint *nodes, *edges, *weights;
